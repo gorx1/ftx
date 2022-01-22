@@ -179,3 +179,10 @@ class FtxClient:
             if len(response) < limit:
                 break
         return results
+
+    def get_historical_prices(self, market: str, resolution: str, start_time: float, end_time: float = None) -> List[dict]:
+            if end_time == None:
+                return self._get(f'markets/{market}/candles?resolution={resolution}&start_time={start_time}')
+            else:
+                return self._get(f'markets/{market}/candles?resolution={resolution}&start_time={start_time}&end_time={end_time}')
+                
