@@ -175,7 +175,14 @@ class FtxClientWs(WebsocketManager):
             self._subscribe(subscription)
         return dict(self._orders.copy())
 
-    def get_trades(self, market: str, aggregate: bool = False) -> List[Dict]:
+    def get_trades(self, market: str, aggregate: bool = True) -> List[Dict]:
+        #aggregate = True, appends new WS messages with ticks to self._trades,
+        #behaves the way it used to behave before the update.
+        #Some WS messages with trades may contain several actual ticks,
+        #with aggregate = False these messages would be expanded into individual
+        #ticks with unique IDs and consequently added to self._trades in such way
+        #so they can be processed after in correct order.
+        
         self._flags['get_trades']['aggregate'] = aggregate
         subscription = {'channel': 'trades', 'market': market}
         if subscription not in self._subscriptions:
@@ -283,3 +290,8 @@ class FtxClientWs(WebsocketManager):
             self._handle_fills_message(message)
         elif channel == 'orders':
             self._handle_orders_message(message)
+
+#Exmaple use
+# client = FtxClientWs()
+# client.get_trades('LTC-PERP')
+# client._trades
