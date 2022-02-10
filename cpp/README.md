@@ -1,5 +1,5 @@
 ## Setup example for Windows & MSYS2
-1. Add your API keys to the clients (optional);
+1. Execute the following commands in MSYS2 MinGW x64 shell;
 ```bash
 git clone https://github.com/ftexchange/ftx.git
 cd ftx
