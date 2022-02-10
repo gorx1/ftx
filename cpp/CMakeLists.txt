@@ -10,9 +10,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -march=native -g")
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_STATIC_RUNTIME OFF)
 set(Boost_USE_MULTITHREADED OFF)
-find_package(Boost 1.71 REQUIRED)
+find_package(Boost 1.78 REQUIRED)
 link_directories(${Boost_LIBRARY_DIRS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+
+find_package(OpenSSL 1.1 REQUIRED)
+include_directories(SYSTEM ${OPENSSL_INCLUDE_DIR})
 
 include_directories(src)
 include_directories(SYSTEM src/external)

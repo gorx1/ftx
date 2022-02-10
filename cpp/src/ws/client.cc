@@ -5,74 +5,79 @@
 
 namespace encoding = util::encoding;
 
-namespace ftx {
-
-WSClient::WSClient()
+namespace ftx
 {
-    ws.configure(uri, api_key, api_secret, subaccount_name);
-    ws.set_on_open_cb([this]() { return this->on_open(); });
-}
-
-void WSClient::on_message(util::WS::OnMessageCB cb)
-{
-    ws.set_on_message_cb(cb);
-}
-
-void WSClient::connect()
-{
-    ws.connect();
-}
-
-std::vector<json> WSClient::on_open()
-{
-    std::vector<json> msgs;
-
-    if (!(api_key.empty() || api_secret.empty())) {
-        long ts = util::get_ms_timestamp(util::current_time()).count();
-        std::string data = std::to_string(ts) + "websocket_login";
-        std::string hmacced = encoding::hmac(std::string(api_secret), data, 32);
-        std::string sign =
-          encoding::string_to_hex((unsigned char*)hmacced.c_str(), 32);
-        json msg = {{"op", "login"},
-                    {"args", {{"key", api_key}, {"sign", sign}, {"time", ts}}}};
-        if (!subaccount_name.empty()) {
-            msg.push_back({"subaccount", subaccount_name});
+        WSClient::WSClient(std::string api_key, std::string api_secret, std::string subaccount_name)
+        {
+            this->api_key = api_key;
+            this->api_secret = api_secret;
+            this->subaccount_name = subaccount_name;
+            ws.configure(uri, api_key, api_secret, subaccount_name);
+            ws.set_on_open_cb([this]() { return this->on_open(); });
         }
-        msgs.push_back(msg);
-    }
 
-    for (auto& [market, channel] : subscriptions) {
-        json msg = {
-          {"op", "subscribe"}, {"channel", channel}, {"market", market}};
-        msgs.push_back(msg);
-    }
+        void WSClient::on_message(util::WS::OnMessageCB cb)
+        {
+            ws.set_on_message_cb(cb);
+        }
 
-    return msgs;
-}
+        void WSClient::connect()
+        {
+            ws.connect();
+        }
 
-void WSClient::subscribe_orders(std::string market)
-{
-    subscriptions.push_back(std::make_pair(market, "orders"));
-}
+        std::vector<json> WSClient::on_open()
+        {
+            std::vector<json> msgs;
 
-void WSClient::subscribe_orderbook(std::string market)
-{
-    subscriptions.push_back(std::make_pair(market, "orderbook"));
-}
+            if (!(api_key.empty() || api_secret.empty()))
+            {
+                long long ts = util::get_ms_timestamp(util::current_time()).count();
+                std::string data    = std::to_string(ts) + "websocket_login";
+                std::string hmacced = encoding::hmac(std::string(api_secret), data, 32);
+                std::string sign    = encoding::string_to_hex_((unsigned char*)hmacced.c_str(), 32);
+                json msg = {{"op", "login"}, {"args", {{"key", api_key}, {"sign", sign}, {"time", ts}}}};
 
-void WSClient::subscribe_fills(std::string market)
-{
-    subscriptions.push_back(std::make_pair(market, "fills"));
-}
+                if (!subaccount_name.empty())
+                {
+                    msg.at("args").push_back({"subaccount", subaccount_name});
+                }
 
-void WSClient::subscribe_trades(std::string market)
-{
-    subscriptions.push_back(std::make_pair(market, "trades"));
-}
+                msgs.push_back(msg);
+            }
 
-void WSClient::subscribe_ticker(std::string market)
-{
-    subscriptions.push_back(std::make_pair(market, "ticker"));
-}
+            for (auto& [market, channel] : subscriptions) {
+                json msg = {
+                {"op", "subscribe"}, {"channel", channel}, {"market", market}};
+                msgs.push_back(msg);
+            }
+
+            return msgs;
+        }
+
+        void WSClient::subscribe_orders(std::string market)
+        {
+            subscriptions.push_back(std::make_pair(market, "orders"));
+        }
+
+        void WSClient::subscribe_orderbook(std::string market)
+        {
+            subscriptions.push_back(std::make_pair(market, "orderbook"));
+        }
+
+        void WSClient::subscribe_fills(std::string market)
+        {
+            subscriptions.push_back(std::make_pair(market, "fills"));
+        }
+
+        void WSClient::subscribe_trades(std::string market)
+        {
+            subscriptions.push_back(std::make_pair(market, "trades"));
+        }
+
+        void WSClient::subscribe_ticker(std::string market)
+        {
+            subscriptions.push_back(std::make_pair(market, "ticker"));
+        }
 
 }
