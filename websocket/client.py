@@ -291,7 +291,7 @@ class FtxClientWs(WebsocketManager):
         elif channel == 'orders':
             self._handle_orders_message(message)
 
-#Exmaple use
+#Example use
 # client = FtxClientWs()
 # client.get_trades('LTC-PERP')
 # client._trades
