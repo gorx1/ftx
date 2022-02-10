@@ -56,29 +56,51 @@ class FtxClient:
                 raise Exception(data['error'])
             return data['result']
 
-    def list_futures(self) -> List[dict]:
+    def get_all_futures(self) -> List[dict]:
         return self._get('futures')
 
-    def list_markets(self) -> List[dict]:
+    def get_future(self, future_name: str = None) -> dict:
+        return self._get(f'futures/{future_name}')
+
+    def get_markets(self) -> List[dict]:
         return self._get('markets')
 
     def get_orderbook(self, market: str, depth: int = None) -> dict:
         return self._get(f'markets/{market}/orderbook', {'depth': depth})
 
-    def get_trades(self, market: str) -> dict:
-        return self._get(f'markets/{market}/trades')
+    def get_trades(self, market: str, start_time: float = None, end_time: float = None) -> dict:
+        return self._get(f'markets/{market}/trades', {'start_time': start_time, 'end_time': end_time})
 
     def get_account_info(self) -> dict:
         return self._get(f'account')
 
     def get_open_orders(self, market: str = None) -> List[dict]:
         return self._get(f'orders', {'market': market})
-    
-    def get_order_history(self, market: str = None, side: str = None, order_type: str = None, start_time: float = None, end_time: float = None) -> List[dict]:
-        return self._get(f'orders/history', {'market': market, 'side': side, 'orderType': order_type, 'start_time': start_time, 'end_time': end_time})
-        
-    def get_conditional_order_history(self, market: str = None, side: str = None, type: str = None, order_type: str = None, start_time: float = None, end_time: float = None) -> List[dict]:
-        return self._get(f'conditional_orders/history', {'market': market, 'side': side, 'type': type, 'orderType': order_type, 'start_time': start_time, 'end_time': end_time})
+
+    def get_order_history(
+        self, market: str = None, side: str = None, order_type: str = None,
+        start_time: float = None, end_time: float = None
+    ) -> List[dict]:
+        return self._get(f'orders/history', {
+            'market': market,
+            'side': side,
+            'orderType': order_type,
+            'start_time': start_time,
+            'end_time': end_time
+        })
+
+    def get_conditional_order_history(
+        self, market: str = None, side: str = None, type: str = None,
+        order_type: str = None, start_time: float = None, end_time: float = None
+    ) -> List[dict]:
+        return self._get(f'conditional_orders/history', {
+            'market': market,
+            'side': side,
+            'type': type,
+            'orderType': order_type,
+            'start_time': start_time,
+            'end_time': end_time
+        })
 
     def modify_order(
         self, existing_order_id: Optional[str] = None,
@@ -101,17 +123,19 @@ class FtxClient:
 
     def place_order(self, market: str, side: str, price: float, size: float, type: str = 'limit',
                     reduce_only: bool = False, ioc: bool = False, post_only: bool = False,
-                    client_id: str = None) -> dict:
-        return self._post('orders', {'market': market,
-                                     'side': side,
-                                     'price': price,
-                                     'size': size,
-                                     'type': type,
-                                     'reduceOnly': reduce_only,
-                                     'ioc': ioc,
-                                     'postOnly': post_only,
-                                     'clientId': client_id,
-                                     })
+                    client_id: str = None, reject_after_ts: float = None) -> dict:
+        return self._post('orders', {
+            'market': market,
+            'side': side,
+            'price': price,
+            'size': size,
+            'type': type,
+            'reduceOnly': reduce_only,
+            'ioc': ioc,
+            'postOnly': post_only,
+            'clientId': client_id,
+            'rejectAfterTs': reject_after_ts
+        })
 
     def place_conditional_order(
         self, market: str, side: str, size: float, type: str = 'stop',
@@ -130,29 +154,61 @@ class FtxClient:
         assert type not in ('trailing_stop',) or (trigger_price is None and trail_value is not None), \
             'Trailing stops need a trail value and cannot take a trigger price'
 
-        return self._post('conditional_orders',
-                          {'market': market, 'side': side, 'triggerPrice': trigger_price,
-                           'size': size, 'reduceOnly': reduce_only, 'type': 'stop',
-                           'cancelLimitOnTrigger': cancel, 'orderPrice': limit_price})
+        return self._post('conditional_orders', {
+            'market': market,
+            'side': side,
+            'triggerPrice': trigger_price,
+            'size': size,
+            'reduceOnly': reduce_only,
+            'type': 'stop',
+            'cancelLimitOnTrigger': cancel,
+            'orderPrice': limit_price
+        })
 
     def cancel_order(self, order_id: str) -> dict:
         return self._delete(f'orders/{order_id}')
 
-    def cancel_orders(self, market_name: str = None, conditional_orders: bool = False,
-                      limit_orders: bool = False) -> dict:
-        return self._delete(f'orders', {'market': market_name,
-                                        'conditionalOrdersOnly': conditional_orders,
-                                        'limitOrdersOnly': limit_orders,
-                                        })
+    def cancel_orders(
+        self, market_name: str = None,
+        conditional_orders: bool = False, limit_orders: bool = False
+    ) -> dict:
+        return self._delete(f'orders', {
+            'market': market_name,
+            'conditionalOrdersOnly': conditional_orders,
+            'limitOrdersOnly': limit_orders
+        })
 
-    def get_fills(self) -> List[dict]:
-        return self._get(f'fills')
+    def get_fills(self, market: str = None, start_time: float = None,
+        end_time: float = None, min_id: int = None, order_id: int = None
+    ) -> List[dict]:
+        return self._get('fills', {
+            'market': market,
+            'start_time': start_time,
+            'end_time': end_time,
+            'minId': min_id,
+            'orderId': order_id
+        })
 
     def get_balances(self) -> List[dict]:
         return self._get('wallet/balances')
 
-    def get_deposit_address(self, ticker: str) -> dict:
-        return self._get(f'wallet/deposit_address/{ticker}')
+    def get_total_usd_balance(self) -> int:
+        total_usd = 0
+        balances = self._get('wallet/balances')
+        for balance in balances:
+            total_usd += balance['usdValue']
+        return total_usd
+
+    def get_all_balances(self) -> List[dict]:
+        return self._get('wallet/all_balances')
+
+    def get_total_account_usd_balance(self) -> int:
+        total_usd = 0
+        all_balances = self._get('wallet/all_balances')
+        for wallet in all_balances:
+            for balance in all_balances[wallet]:
+                total_usd += balance['usdValue']
+        return total_usd
 
     def get_positions(self, show_avg_price: bool = False) -> List[dict]:
         return self._get('positions', {'showAvgPrice': show_avg_price})
@@ -186,3 +242,107 @@ class FtxClient:
             else:
                 return self._get(f'markets/{market}/candles?resolution={resolution}&start_time={start_time}&end_time={end_time}')
                 
+    def get_last_historical_prices(self, market: str, resolution: int = 300) -> List[dict]:
+        return self._get(f'markets/{market}/candles/last', {'resolution': resolution})
+
+    def get_borrow_rates(self) -> List[dict]:
+        return self._get('spot_margin/borrow_rates')
+
+    def get_borrow_history(self, start_time: float = None, end_time: float = None) -> List[dict]:
+        return self._get('spot_margin/borrow_history', {'start_time': start_time, 'end_time': end_time})
+
+    def get_lending_history(self, start_time: float = None, end_time: float = None) -> List[dict]:
+        return self._get('spot_margin/lending_history', {
+            'start_time': start_time,
+            'end_time': end_time
+        })
+
+    def get_expired_futures(self) -> List[dict]:
+        return self._get('expired_futures')
+
+    def get_coins(self) -> List[dict]:
+        return self._get('wallet/coins')
+
+    def get_future_stats(self, future_name: str) -> dict:
+        return self._get(f'futures/{future_name}/stats')
+
+    def get_single_market(self, market: str = None) -> Dict:
+        return self._get(f'markets/{market}')
+
+    def get_market_info(self, market: str = None) -> dict:
+        return self._get('spot_margin/market_info', {'market': market})
+
+    def get_trigger_order_triggers(self, conditional_order_id: str = None) -> List[dict]:
+        return self._get(f'conditional_orders/{conditional_order_id}/triggers')
+
+    def get_trigger_order_history(self, market: str = None) -> List[dict]:
+        return self._get('conditional_orders/history', {'market': market})
+
+    def get_staking_balances(self) -> List[dict]:
+        return self._get('staking/balances')
+
+    def get_stakes(self) -> List[dict]:
+        return self._get('staking/stakes')
+
+    def get_staking_rewards(self, start_time: float = None, end_time: float = None) -> List[dict]:
+        return self._get('staking/staking_rewards', {
+            'start_time': start_time,
+            'end_time': end_time
+        })
+
+    def place_staking_request(self, coin: str = 'SRM', size: float = None) -> dict:
+        return self._post('srm_stakes/stakes',)
+
+    def get_funding_rates(self, future: str = None, start_time: float = None, end_time: float = None)-> List[dict]:
+        return self._get('funding_rates', {
+            'future': future,
+            'start_time': start_time,
+            'end_time': end_time
+        })
+
+    def get_all_funding_rates(self) -> List[dict]:
+        return self._get('funding_rates')
+
+    def get_funding_payments(self, start_time: float = None, end_time: float = None) -> List[dict]:
+        return self._get('funding_payments', {
+            'start_time': start_time,
+            'end_time': end_time
+        })
+
+    def create_subaccount(self, nickname: str) -> dict:
+        return self._post('subaccounts', {'nickname': nickname})
+
+    def get_subaccount_balances(self, nickname: str) -> List[dict]:
+        return self._get(f'subaccounts/{nickname}/balances')
+
+    def get_deposit_address(self, ticker: str) -> dict:
+        return self._get(f'wallet/deposit_address/{ticker}')
+
+    def get_deposit_history(self) -> List[dict]:
+        return self._get('wallet/deposits')
+
+    def get_withdrawal_fee(self, coin: str, size: int, address: str, method: str = None, tag: str = None) -> Dict:
+        return self._get('wallet/withdrawal_fee', {
+            'coin': coin,
+            'size': size,
+            'address': address,
+            'method': method,
+            'tag': tag
+        })
+
+    def get_withdrawals(self, start_time: float = None, end_time: float = None) -> List[dict]:
+        return self._get('wallet/withdrawals', {'start_time': start_time, 'end_time': end_time})
+
+    def get_saved_addresses(self, coin: str = None) -> dict:
+        return self._get('wallet/saved_addresses', {'coin': coin})
+
+    def submit_fiat_withdrawal(self, coin: str, size: int, saved_address_id: int, code: int = None) -> Dict:
+        return self._post('wallet/fiat_withdrawals', {
+        'coin': coin,
+        'size': size,
+        'savedAddressId': saved_address_id,
+        'code': code
+    })
+
+    def get_latency_stats(self, days: int = 1, subaccount_nickname: str = None) -> Dict:
+        return self._get('stats/latency_stats', {'days': days, 'subaccount_nickname': subaccount_nickname})
